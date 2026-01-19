@@ -57,6 +57,9 @@ async function generateEmployees() {
  * Generate employee data with diverse positions, departments, and skills
  */
 function generateEmployeeData(count: number) {
+  const MIN_SKILLS = 3;
+  const SKILL_RANGE = 4; // Will result in 3-6 skills per employee
+
   const firstNames = [
     'James',
     'Mary',
@@ -526,16 +529,17 @@ function generateEmployeeData(count: number) {
 
     // Select 3-6 unique skills from the department's skill set
     const departmentSkills = skillsByDepartment[department] || [];
-    const numSkills = Math.min(3 + (i % 4), departmentSkills.length); // 3 to 6 skills, but not more than available
+    const numSkills = Math.min(
+      MIN_SKILLS + (i % SKILL_RANGE),
+      departmentSkills.length,
+    );
     const employeeSkills: string[] = [];
-    const usedSkillIndices = new Set<number>();
 
-    while (employeeSkills.length < numSkills) {
-      const skillIndex = (i + employeeSkills.length) % departmentSkills.length;
-      if (!usedSkillIndices.has(skillIndex)) {
-        usedSkillIndices.add(skillIndex);
-        employeeSkills.push(departmentSkills[skillIndex]);
-      }
+    // Use a simple approach: take consecutive skills starting from different offsets
+    const startOffset = i % departmentSkills.length;
+    for (let j = 0; j < numSkills; j++) {
+      const skillIndex = (startOffset + j) % departmentSkills.length;
+      employeeSkills.push(departmentSkills[skillIndex]);
     }
 
     // Generate experience (1-15 years)
