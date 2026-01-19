@@ -61,11 +61,25 @@ This will start:
 - **Qdrant** on port 6333 (HTTP) and 6334 (gRPC)
 - **MongoDB** on port 27017
 
-### 5. Run the migration script
+### 5. Generate employee data (Optional)
+
+Generate 100 diverse employee records with various positions, departments, and skills:
+
+```bash
+npm run generate:employees
+```
+
+This script will:
+1. Connect to MongoDB
+2. Clear existing employee data (if any)
+3. Generate 100 diverse employee records across 15 departments
+4. Insert all records into MongoDB
+
+### 6. Run the migration script
 
 The migration script will:
 1. Connect to MongoDB
-2. Create sample employee data if none exists
+2. Fetch employee data (or create sample data if none exists)
 3. Generate embeddings for each employee
 4. Upsert the embeddings into Qdrant
 
@@ -73,7 +87,7 @@ The migration script will:
 npm run migrate:employees
 ```
 
-### 6. Start the NestJS application
+### 7. Start the NestJS application
 
 ```bash
 npm run start:dev
@@ -87,13 +101,14 @@ The application will start on http://localhost:3000
 qdrant-nest/
 ├── src/
 │   ├── schemas/
-│   │   └── employee.schema.ts      # Mongoose schema for Employee
+│   │   └── employee.schema.ts          # Mongoose schema for Employee
 │   ├── services/
-│   │   ├── embedding.service.ts    # Gemini AI embedding generation
-│   │   └── qdrant.service.ts       # Qdrant operations
+│   │   ├── embedding.service.ts        # Gemini AI embedding generation
+│   │   └── qdrant.service.ts           # Qdrant operations
 │   ├── scripts/
-│   │   └── migrate-employees.ts    # Data migration script
-│   ├── app.module.ts               # Main application module
+│   │   ├── generate-employees.ts       # Generate 100 employee records
+│   │   └── migrate-employees.ts        # Data migration script
+│   ├── app.module.ts                   # Main application module
 │   ├── app.controller.ts
 │   ├── app.service.ts
 │   └── main.ts
@@ -123,7 +138,8 @@ qdrant-nest/
 - `npm run start` - Start the application
 - `npm run start:dev` - Start in watch mode
 - `npm run start:prod` - Start in production mode
-- `npm run migrate:employees` - Run employee data migration
+- `npm run generate:employees` - Generate 100 diverse employee records in MongoDB
+- `npm run migrate:employees` - Run employee data migration from MongoDB to Qdrant
 - `npm run build` - Build the application
 - `npm run lint` - Lint the code
 - `npm run test` - Run tests
