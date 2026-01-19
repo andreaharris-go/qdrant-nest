@@ -210,6 +210,15 @@ docker-compose restart
 
 Wait a few seconds after starting Docker services for them to fully initialize before running the migration script.
 
+### Testing Curl
+```bash
+curl --location 'http://localhost:3000/chat' \
+--header 'Content-Type: application/json' \
+--data '{
+    "question": "ฉันต้องการจัดตั้งทีม AI คุณคิดว่าใครเหมาะสมที่สุด และเพราะอะไร" 
+}'
+```
+
 ## License
 
 UNLICENSED
