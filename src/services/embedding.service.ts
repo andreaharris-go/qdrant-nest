@@ -11,6 +11,9 @@ interface EmbeddingResponse {
 export class EmbeddingService {
   private readonly logger = new Logger(EmbeddingService.name);
   private genAI: GoogleGenerativeAI;
+  // Note: Using 'any' here as the Google Generative AI library doesn't export
+  // specific types for the embedding model. The library's type definitions
+  // use 'any' internally for models.
   private model: any;
 
   constructor() {

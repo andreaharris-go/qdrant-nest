@@ -50,6 +50,9 @@ export class QdrantService implements OnModuleInit {
 
   /**
    * Upsert a point (employee embedding) into Qdrant
+   * Note: Using Record<string, any> for payload to support flexible data structures.
+   * While we primarily store employee data, this allows for extensibility
+   * without requiring schema changes.
    */
   async upsertPoint(
     id: string,
