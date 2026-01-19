@@ -522,18 +522,20 @@ function generateEmployeeData(count: number) {
     // Distribute employees across departments
     const department = departments[i % departments.length];
     const departmentPositions = positions[department];
-    const position =
-      departmentPositions[i % departmentPositions.length] ||
-      departmentPositions[0];
+    const position = departmentPositions[i % departmentPositions.length];
 
-    // Select 3-6 skills from the department's skill set
+    // Select 3-6 unique skills from the department's skill set
     const departmentSkills = skillsByDepartment[department] || [];
-    const numSkills = 3 + (i % 4); // 3 to 6 skills
+    const numSkills = Math.min(3 + (i % 4), departmentSkills.length); // 3 to 6 skills, but not more than available
     const employeeSkills: string[] = [];
+    const usedSkillIndices = new Set<number>();
 
-    for (let j = 0; j < numSkills && j < departmentSkills.length; j++) {
-      const skillIndex = (i + j) % departmentSkills.length;
-      employeeSkills.push(departmentSkills[skillIndex]);
+    while (employeeSkills.length < numSkills) {
+      const skillIndex = (i + employeeSkills.length) % departmentSkills.length;
+      if (!usedSkillIndices.has(skillIndex)) {
+        usedSkillIndices.add(skillIndex);
+        employeeSkills.push(departmentSkills[skillIndex]);
+      }
     }
 
     // Generate experience (1-15 years)
