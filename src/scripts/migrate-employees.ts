@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import { EmployeeDocument } from '../schemas/employee.schema';
 import { EmbeddingService } from '../services/embedding.service';
 import { QdrantService } from '../services/qdrant.service';
+import { v5 as uuidv5 } from 'uuid';
 
 /**
  * Migration script to fetch employee data from MongoDB,
@@ -11,6 +12,9 @@ import { QdrantService } from '../services/qdrant.service';
  */
 async function migrateEmployeeData() {
   console.log('Starting employee data migration...');
+
+  // UUID namespace for generating consistent UUIDs from MongoDB ObjectIDs
+  const UUID_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 
   // Create a standalone NestJS application context
   const app = await NestFactory.createApplicationContext(AppModule, {
@@ -88,9 +92,19 @@ async function migrateEmployeeData() {
 
       // Fetch the newly created employees
       const newEmployees = await employeeModel.find().exec();
-      await processEmployees(newEmployees, embeddingService, qdrantService);
+      await processEmployees(
+        newEmployees,
+        embeddingService,
+        qdrantService,
+        UUID_NAMESPACE,
+      );
     } else {
-      await processEmployees(employees, embeddingService, qdrantService);
+      await processEmployees(
+        employees,
+        embeddingService,
+        qdrantService,
+        UUID_NAMESPACE,
+      );
     }
 
     console.log('Migration completed successfully!');
@@ -109,6 +123,7 @@ async function processEmployees(
   employees: EmployeeDocument[],
   embeddingService: EmbeddingService,
   qdrantService: QdrantService,
+  uuidNamespace: string,
 ) {
   console.log(`Processing ${employees.length} employees...`);
 
@@ -130,11 +145,15 @@ async function processEmployees(
         const embedding =
           await embeddingService.generateEmbedding(employeeText);
 
+        // Generate a UUID from the MongoDB ObjectID for Qdrant
+        const uuid = uuidv5(employee._id.toString(), uuidNamespace);
+
         // Prepare point for Qdrant
         points.push({
-          id: employee._id.toString(),
+          id: uuid,
           vector: embedding,
           payload: {
+            mongoId: employee._id.toString(),
             name: employee.name,
             email: employee.email,
             position: employee.position,
