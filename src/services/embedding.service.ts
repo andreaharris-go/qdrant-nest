@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+interface EmbeddingResponse {
+  embedding: {
+    values: number[];
+  };
+}
+
 @Injectable()
 export class EmbeddingService {
   private readonly logger = new Logger(EmbeddingService.name);
@@ -33,17 +39,14 @@ export class EmbeddingService {
       }
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      const result = await this.model.embedContent(text);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const result: EmbeddingResponse = await this.model.embedContent(text);
       const embedding = result.embedding;
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (!embedding || !embedding.values) {
         this.logger.warn('Invalid embedding response, using placeholder');
         return this.generatePlaceholderEmbedding(text);
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
       return embedding.values;
     } catch (error) {
       this.logger.error(
