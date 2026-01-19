@@ -12,6 +12,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
+    "generate:employees": "ts-node -r tsconfig-paths/register src/scripts/generate-employees.ts",
     "migrate:employees": "ts-node -r tsconfig-paths/register src/scripts/migrate-employees.ts",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
