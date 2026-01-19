@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { Employee, EmployeeSchema } from './schemas/employee.schema';
 import { EmbeddingService } from './services/embedding.service';
 import { QdrantService } from './services/qdrant.service';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { QdrantService } from './services/qdrant.service';
     MongooseModule.forFeature([
       { name: Employee.name, schema: EmployeeSchema },
     ]),
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService, EmbeddingService, QdrantService],
