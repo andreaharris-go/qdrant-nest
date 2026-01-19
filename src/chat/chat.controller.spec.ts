@@ -59,26 +59,6 @@ describe('ChatController', () => {
       expect(mockChatService.chat).toHaveBeenCalledWith(mockRequest);
     });
 
-    it('should throw BAD_REQUEST when question is empty', async () => {
-      const mockRequest = { question: '' };
-
-      await expect(controller.chat(mockRequest)).rejects.toThrow(
-        new HttpException('Question is required', HttpStatus.BAD_REQUEST),
-      );
-
-      expect(mockChatService.chat).not.toHaveBeenCalled();
-    });
-
-    it('should throw BAD_REQUEST when question is only whitespace', async () => {
-      const mockRequest = { question: '   ' };
-
-      await expect(controller.chat(mockRequest)).rejects.toThrow(
-        new HttpException('Question is required', HttpStatus.BAD_REQUEST),
-      );
-
-      expect(mockChatService.chat).not.toHaveBeenCalled();
-    });
-
     it('should handle Qdrant connection errors', async () => {
       const mockRequest = { question: 'Valid question' };
       mockChatService.chat.mockRejectedValue(
@@ -102,19 +82,6 @@ describe('ChatController', () => {
           'Failed to process chat request',
           HttpStatus.INTERNAL_SERVER_ERROR,
         ),
-      );
-    });
-
-    it('should propagate HttpException from service', async () => {
-      const mockRequest = { question: 'Valid question' };
-      const customException = new HttpException(
-        'Custom error',
-        HttpStatus.NOT_FOUND,
-      );
-      mockChatService.chat.mockRejectedValue(customException);
-
-      await expect(controller.chat(mockRequest)).rejects.toThrow(
-        customException,
       );
     });
   });

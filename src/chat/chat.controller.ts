@@ -15,19 +15,8 @@ export class ChatController {
   @Post()
   async chat(@Body() chatRequest: ChatRequestDto): Promise<ChatResponseDto> {
     try {
-      if (!chatRequest.question || chatRequest.question.trim() === '') {
-        throw new HttpException(
-          'Question is required',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
       return await this.chatService.chat(chatRequest);
     } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
       // Handle Qdrant connection issues or other errors
       const errorMessage = (error as Error).message || 'Unknown error';
       if (
