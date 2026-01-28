@@ -7,6 +7,7 @@ import { Employee, EmployeeSchema } from './schemas/employee.schema';
 import { EmbeddingService } from './services/embedding.service';
 import { QdrantService } from './services/qdrant.service';
 import { ChatModule } from './chat/chat.module';
+import { WebsocketModule } from './websocket/websocket.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ChatModule } from './chat/chat.module';
       { name: Employee.name, schema: EmployeeSchema },
     ]),
     ChatModule,
+    WebsocketModule,
   ],
   controllers: [AppController],
   providers: [AppService, EmbeddingService, QdrantService],

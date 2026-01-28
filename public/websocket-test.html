@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebSocket Test Client</title>
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 50px auto;
+      padding: 20px;
+    }
+    .section {
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    .section h3 {
+      margin-top: 0;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      background-color: #007bff;
+      color: white;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    button.disconnect {
+      background-color: #dc3545;
+    }
+    button.send-msg {
+      background-color: #28a745;
+    }
+    input, textarea {
+      padding: 10px;
+      margin: 5px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      width: 250px;
+    }
+    #log {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      height: 300px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .log-entry {
+      margin: 5px 0;
+      padding: 5px;
+      border-radius: 3px;
+    }
+    .log-welcome { background-color: #d4edda; }
+    .log-response { background-color: #cce5ff; }
+    .log-notification { background-color: #e2d5f1; }
+    .log-subscribed { background-color: #fff3cd; }
+    .log-error { background-color: #f8d7da; }
+    .log-connection { background-color: #e2e3e5; }
+    .log-sent { background-color: #d1ecf1; }
+    .status {
+      padding: 5px 10px;
+      border-radius: 5px;
+      display: inline-block;
+    }
+    .status.connected { background-color: #28a745; color: white; }
+    .status.disconnected { background-color: #dc3545; color: white; }
+    .client-id {
+      font-family: monospace;
+      background-color: #e9ecef;
+      padding: 2px 8px;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔌 WebSocket Test Client</h1>
+
+  <div class="section">
+    <h3>Connection Status</h3>
+    <span id="status" class="status disconnected">Disconnected</span>
+    <span id="clientId" class="client-id" style="display: none;"></span>
+    <br><br>
+    <input type="text" id="serverUrl" value="http://localhost:3000" placeholder="Server URL">
+    <button onclick="connect()">Connect</button>
+    <button class="disconnect" onclick="disconnect()">Disconnect</button>
+  </div>
+
+  <div class="section">
+    <h3>📤 Send Message (รับกลับ "Hello " + ข้อความ)</h3>
+    <input type="text" id="messageText" placeholder="พิมพ์ข้อความ..." value="World">
+    <button class="send-msg" onclick="sendMessage()">Send Message</button>
+  </div>
+
+  <div class="section">
+    <h3>📢 Broadcast Notification</h3>
+    <input type="text" id="notifEvent" placeholder="Event name" value="test">
+    <input type="text" id="notifMessage" placeholder="Message" value="Hello Everyone!">
+    <button onclick="sendNotification()">Broadcast</button>
+  </div>
+
+  <div class="section">
+    <h3>🚪 Room Management</h3>
+    <input type="text" id="roomName" placeholder="Room name" value="room1">
+    <button onclick="subscribeRoom()">Subscribe</button>
+    <button onclick="unsubscribeRoom()">Unsubscribe</button>
+  </div>
+
+  <div class="section">
+    <h3>📋 Event Log</h3>
+    <button onclick="clearLog()">Clear Log</button>
+    <div id="log"></div>
+  </div>
+
+  <script>
+    let socket = null;
+
+    function log(message, type = 'connection') {
+      const logDiv = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry log-${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logDiv.appendChild(entry);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function updateStatus(connected, clientId = null) {
+      const status = document.getElementById('status');
+      const clientIdSpan = document.getElementById('clientId');
+
+      status.textContent = connected ? 'Connected' : 'Disconnected';
+      status.className = `status ${connected ? 'connected' : 'disconnected'}`;
+
+      if (connected && clientId) {
+        clientIdSpan.textContent = `ID: ${clientId}`;
+        clientIdSpan.style.display = 'inline-block';
+      } else {
+        clientIdSpan.style.display = 'none';
+      }
+    }
+
+    function connect() {
+      const url = document.getElementById('serverUrl').value;
+
+      if (socket) {
+        socket.disconnect();
+      }
+
+      socket = io(url, {
+        transports: ['websocket', 'polling']
+      });
+
+      socket.on('connect', () => {
+        log(`Connected! Socket ID: ${socket.id}`, 'connection');
+        updateStatus(true, socket.id);
+      });
+
+      socket.on('disconnect', () => {
+        log('Disconnected from server', 'connection');
+        updateStatus(false);
+      });
+
+      // รับ welcome message เมื่อเชื่อมต่อ
+      socket.on('welcome', (data) => {
+        log(`WELCOME: ${JSON.stringify(data)}`, 'welcome');
+      });
+
+      // รับ response จากการส่ง message (Hello + ข้อความ)
+      socket.on('response', (data) => {
+        log(`RESPONSE: ${data.message}`, 'response');
+      });
+
+      // รับ notification
+      socket.on('notification', (data) => {
+        log(`NOTIFICATION: ${JSON.stringify(data)}`, 'notification');
+      });
+
+      // รับ subscribed confirmation
+      socket.on('subscribed', (data) => {
+        log(`SUBSCRIBED: ${JSON.stringify(data)}`, 'subscribed');
+      });
+
+      // รับ unsubscribed confirmation
+      socket.on('unsubscribed', (data) => {
+        log(`UNSUBSCRIBED: ${JSON.stringify(data)}`, 'subscribed');
+      });
+
+      // รับ error
+      socket.on('error', (data) => {
+        log(`ERROR: ${JSON.stringify(data)}`, 'error');
+      });
+
+      socket.on('connect_error', (error) => {
+        log(`Connection Error: ${error.message}`, 'error');
+      });
+    }
+
+    function disconnect() {
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+        updateStatus(false);
+      }
+    }
+
+    function sendMessage() {
+      if (!socket || !socket.connected) {
+        log('Not connected! Please connect first.', 'error');
+        return;
+      }
+
+      const text = document.getElementById('messageText').value;
+      if (!text.trim()) {
+        log('Please enter a message!', 'error');
+        return;
+      }
+
+      socket.emit('message', { text: text });
+      log(`Sent message: "${text}"`, 'sent');
+    }
+
+    function sendNotification() {
+      if (!socket || !socket.connected) {
+        log('Not connected! Please connect first.', 'error');
+        return;
+      }
+
+      const event = document.getElementById('notifEvent').value;
+      const message = document.getElementById('notifMessage').value;
+
+      socket.emit('sendNotification', {
+        event: event,
+        message: message,
+        data: { customField: 'test value' }
+      });
+
+      log(`Sent notification: event=${event}, message=${message}`, 'sent');
+    }
+
+    function subscribeRoom() {
+      if (!socket || !socket.connected) {
+        log('Not connected! Please connect first.', 'error');
+        return;
+      }
+
+      const room = document.getElementById('roomName').value;
+      socket.emit('subscribe', { room: room });
+      log(`Subscribing to room: ${room}`, 'sent');
+    }
+
+    function unsubscribeRoom() {
+      if (!socket || !socket.connected) {
+        log('Not connected! Please connect first.', 'error');
+        return;
+      }
+
+      const room = document.getElementById('roomName').value;
+      socket.emit('unsubscribe', { room: room });
+      log(`Unsubscribing from room: ${room}`, 'sent');
+    }
+
+    function clearLog() {
+      document.getElementById('log').innerHTML = '';
+    }
+
+    // Enter key support for message input
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('messageText').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+      });
+    });
+  </script>
+</body>
+</html>
