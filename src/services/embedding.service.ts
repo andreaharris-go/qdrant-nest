@@ -1,20 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-interface EmbeddingResponse {
-  embedding: {
-    values: number[];
-  };
-}
+import { GoogleGenAI } from '@google/genai';
 
 @Injectable()
 export class EmbeddingService {
   private readonly logger = new Logger(EmbeddingService.name);
-  private genAI: GoogleGenerativeAI;
-  // Note: Using 'any' here as the Google Generative AI library doesn't export
-  // specific types for the embedding model. The library's type definitions
-  // use 'any' internally for models.
-  private model: any;
+  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+  private genAI: GoogleGenAI | null = null;
 
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -23,10 +14,8 @@ export class EmbeddingService {
         'GEMINI_API_KEY not found, using placeholder embeddings',
       );
     } else {
-      this.genAI = new GoogleGenerativeAI(apiKey);
-      this.model = this.genAI.getGenerativeModel({
-        model: 'embedding-001',
-      });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+      this.genAI = new GoogleGenAI({ apiKey });
     }
   }
 
@@ -36,21 +25,27 @@ export class EmbeddingService {
    */
   async generateEmbedding(text: string): Promise<number[]> {
     try {
-      if (!this.model) {
+      if (!this.genAI) {
         // Return placeholder embedding if Gemini is not configured
         return this.generatePlaceholderEmbedding(text);
       }
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      const result: EmbeddingResponse = await this.model.embedContent(text);
-      const embedding = result.embedding;
+      const result = await this.genAI.models.embedContent({
+        model: 'gemini-embedding-001',
+        contents: text,
+      });
 
-      if (!embedding || !embedding.values) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const embedding = result.embeddings?.[0]?.values;
+
+      if (!embedding) {
         this.logger.warn('Invalid embedding response, using placeholder');
         return this.generatePlaceholderEmbedding(text);
       }
 
-      return embedding.values;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return embedding;
     } catch (error) {
       this.logger.error(
         `Error generating embedding: ${(error as Error).message}`,
@@ -65,8 +60,9 @@ export class EmbeddingService {
    * This is used when Gemini API is not available
    */
   private generatePlaceholderEmbedding(text: string): number[] {
-    // Generate a deterministic 768-dimensional vector based on text
-    const dimension = 768;
+    // Generate a deterministic 3072-dimensional vector based on text
+    // Matches gemini-embedding-001 output dimensions
+    const dimension = 3072;
     const embedding: number[] = [];
     const seed = this.hashString(text);
 

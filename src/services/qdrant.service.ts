@@ -32,7 +32,7 @@ export class QdrantService implements OnModuleInit {
         this.logger.log(`Creating collection: ${this.collectionName}`);
         await this.client.createCollection(this.collectionName, {
           vectors: {
-            size: 768, // Standard embedding size for most models
+            size: 3072, // Gemini embedding-001 produces 3072-dimensional vectors
             distance: 'Cosine',
           },
         });
