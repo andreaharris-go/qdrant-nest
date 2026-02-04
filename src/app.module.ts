@@ -6,7 +6,7 @@ import { AppService } from './app.service';
 import { Employee, EmployeeSchema } from './schemas/employee.schema';
 import { EmbeddingService } from './services/embedding.service';
 import { QdrantService } from './services/qdrant.service';
-import { ChatModule } from './chat/chat.module';
+// import { ChatModule } from './chat/chat.module';
 import { WebsocketModule } from './websocket/websocket.module';
 
 @Module({
@@ -21,7 +21,7 @@ import { WebsocketModule } from './websocket/websocket.module';
     MongooseModule.forFeature([
       { name: Employee.name, schema: EmployeeSchema },
     ]),
-    ChatModule,
+    // ChatModule,
     WebsocketModule,
   ],
   controllers: [AppController],

@@ -15,6 +15,9 @@ import {
   SubscribeDto,
   MessageDto,
 } from './dto/notification.dto';
+// import { EmbeddingService } from '../services/embedding.service';
+// import { QdrantService } from '../services/qdrant.service';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 @WebSocketGateway({
   cors: {
@@ -28,9 +31,29 @@ export class WebsocketGateway
   server: Server;
 
   private readonly logger = new Logger(WebsocketGateway.name);
+  private genAI: GoogleGenerativeAI;
+  // Note: Using 'any' here as the Google Generative AI library doesn't export
+  // specific types for the generative model. The library's type definitions
+  // use 'any' internally for models.
+  private model: any;
+
   // เก็บข้อมูล clients ที่เชื่อมต่ออยู่
   private connectedClients: Map<string, { socket: Socket; connectedAt: Date }> =
     new Map();
+
+  constructor() {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      this.logger.warn(
+        'GEMINI_API_KEY not found, chat functionality will be limited',
+      );
+    } else {
+      this.genAI = new GoogleGenerativeAI(apiKey);
+      this.model = this.genAI.getGenerativeModel({
+        model: 'gemini-3-flash-preview',
+      });
+    }
+  }
 
   afterInit(): void {
     try {
@@ -85,6 +108,37 @@ export class WebsocketGateway
     }
   }
 
+  private async generateAnswer(
+    question: string,
+    context: string,
+  ): Promise<string> {
+//     const systemPrompt = `You are a helpful HR assistant. Answer the user's question using ONLY the context provided below. If the answer is not in the context, explicitly state that you do not have that information. Do not make up facts.
+// Context:
+// ${context}`;
+//
+//     const prompt = `${systemPrompt}
+//
+// User Question: ${question}
+//
+// Answer:`;
+
+    const prompt = `ฉันเป็นโปรแกรม HR ชื่อน้องนายา ตอนนี้ระบบยังไม่สมบูรณ์ดี คุณช่วยคุยกับ user แทนฉัน
+    User Question: ${question}
+    Answer:`;
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      const result = await this.model.generateContent(prompt);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const response = await result.response;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      return response.text();
+    } catch (error) {
+      this.logger.error(`Error generating answer: ${(error as Error).message}`);
+      throw new Error('Failed to generate answer from LLM');
+    }
+  }
+
   /**
    * รับข้อความจาก client แล้วตอบกลับด้วย "Hello " + ข้อความที่ได้รับ
    * แต่ละ client ทำงานแยกกัน - ตอบกลับเฉพาะ client ที่ส่งมา
@@ -98,16 +152,30 @@ export class WebsocketGateway
     try {
       this.logger.log(`Message received from ${client.id}: ${payload.text}`);
 
-      const response = {
-        message: `Hello ${payload.text}`,
-        clientId: client.id,
-        timestamp: new Date().toISOString(),
-      };
+      this.generateAnswer(payload.text, '')
+        .then((answer) => {
+          const response = {
+            message: answer,
+            clientId: client.id,
+            timestamp: new Date().toISOString(),
+          };
 
-      // ตอบกลับเฉพาะ client ที่ส่งข้อความมา (ไม่ broadcast)
-      client.emit('response', response);
+          client.emit('response', response);
 
-      this.logger.log(`Response sent to ${client.id}: ${response.message}`);
+          this.logger.log(`Response sent to ${client.id}: ${response.message}`);
+        })
+        .catch((error) => {
+          const response = {
+            message: 'error naaaa',
+            clientId: client.id,
+            timestamp: new Date().toISOString(),
+          };
+
+          client.emit('response', response);
+          this.logger.log(
+            `eror sent to ${client.id}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        });
     } catch (error) {
       this.logger.error(
         `Error handling message from ${client.id}`,
